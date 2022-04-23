@@ -10,6 +10,7 @@
 #include "esp_wifi.h"
 
 #include "context.h"
+#include "smartconfig.h"
 
 #define WIFI_CONNECTED_BIT BIT0
 
