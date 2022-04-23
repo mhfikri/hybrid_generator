@@ -50,7 +50,7 @@ static void wifi_connect(void)
         ESP_ERROR_CHECK(context_set_network_connected(args.context, true));
         ESP_ERROR_CHECK(context_set_network_error(args.context, false));
     } else {
-        ESP_LOGW(TAG, "Failed to connect to %s")
+        ESP_LOGW(TAG, "Failed to connect to %s", args.ssid);
         ESP_ERROR_CHECK(context_set_network_connected(args.context, false));
         ESP_ERROR_CHECK(context_set_network_error(args.context, true));
     }
@@ -59,13 +59,12 @@ static void wifi_connect(void)
 static bool wifi_is_provisioned(void)
 {
     wifi_config_t wifi_config;
-    if (args.ssid != NULL & args.password != NULL) {
+    if (args.ssid != NULL && args.password != NULL) {
         ESP_LOGI(TAG, "Saved ssid: %s", args.ssid);
         ESP_LOGI(TAG, "Saved password: %s", args.password);
         strlcpy((char *)wifi_config.sta.ssid, args.ssid, sizeof(wifi_config.sta.ssid));
         strlcpy((char *)wifi_config.sta.password, args.password, sizeof(wifi_config.sta.password));
-        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, wifi_config));
-        ESP_ERROR_CHECK(context_set_network_provisioned(args.context));
+        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
         return true;
     }
     return false;
@@ -97,7 +96,7 @@ static void wifi_task(void *arg)
         smartconfig_init(context);
     }
     while (true) {
-        xEventGroupWaitBits(context->event_group, CONTEXT_EVENT_NETWORK_PROVISIONED, pdTRUE, pdTRUE, portMAX_DELAY);
+        xEventGroupWaitBits(context->event_group, CONTEXT_EVENT_WIFI_CONFIG, pdTRUE, pdTRUE, portMAX_DELAY);
         ESP_ERROR_CHECK(esp_wifi_connect());
         while (true) {
             wifi_connect();
