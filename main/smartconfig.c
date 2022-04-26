@@ -25,24 +25,20 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
     ESP_LOGD(TAG, "Event base: %s, id: %d", event_base, event_id);
     if (event_base == SC_EVENT && event_id == SC_EVENT_GOT_SSID_PSWD) {
         context_t *context = (context_t *)arg;
-        smartconfig_event_got_ssid_pswd_t *evt = (smartconfig_event_got_ssid_pswd_t *)event_data;
-        wifi_config_t wifi_config;
-        char *ssid = malloc(sizeof(evt->ssid));
-        char *password = malloc(sizeof(evt->password));
+        smartconfig_event_got_ssid_pswd_t *event = (smartconfig_event_got_ssid_pswd_t *)event_data;
 
-        bzero(&wifi_config, sizeof(wifi_config_t));
-        memcpy(wifi_config.sta.ssid, evt->ssid, sizeof(wifi_config.sta.ssid));
-        memcpy(wifi_config.sta.password, evt->password, sizeof(wifi_config.sta.password));
+        wifi_config_t wifi_cfg;
+        bzero(&wifi_cfg, sizeof(wifi_config_t));
+        memcpy(wifi_cfg.sta.ssid, event->ssid, sizeof(wifi_cfg.sta.ssid));
+        memcpy(wifi_cfg.sta.password, event->password, sizeof(wifi_cfg.sta.password));
 
-        memcpy(ssid, evt->ssid, sizeof(evt->ssid));
-        memcpy(password, evt->password, sizeof(evt->password));
-        ESP_ERROR_CHECK(storage_set_string(STORAGE_KEY_WIFI_SSID, ssid));
-        ESP_ERROR_CHECK(storage_set_string(STORAGE_KEY_WIFI_PASSWORD, password));
-        ESP_ERROR_CHECK(context_set_wifi_config(context, ssid, password));
-        ESP_LOGI(TAG, "Found ssid: %s", ssid);
-        ESP_LOGI(TAG, "Found password: %s", password);
+        memcpy(context->config.ssid, event->ssid, sizeof(event->ssid));
+        memcpy(context->config.password, event->password, sizeof(event->password));
+        ESP_LOGI(TAG, "Found ssid: %s", (const char *)wifi_cfg.sta.ssid);
+        ESP_LOGI(TAG, "Found password: %s", (const char *)wifi_cfg.sta.password);
 
-        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_cfg));
+        ESP_ERROR_CHECK(context_set_network_provisioned(context));
     } else if (event_base == SC_EVENT && event_id == SC_EVENT_SEND_ACK_DONE) {
         xEventGroupSetBits(sc_event_group, SC_DONE_BIT);
     }
@@ -51,6 +47,7 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
 static void smartconfig_task(void *arg)
 {
     context_t *context = (context_t *)arg;
+
     ESP_LOGI(TAG, "Starting smartconfig...");
     esp_log_level_set("smartconfig", ESP_LOG_VERBOSE);
 
@@ -61,8 +58,8 @@ static void smartconfig_task(void *arg)
     ESP_ERROR_CHECK(esp_smartconfig_start(&cfg));
     while (true) {
         xEventGroupWaitBits(sc_event_group, SC_DONE_BIT, pdTRUE, pdTRUE, portMAX_DELAY);
-        ESP_ERROR_CHECK(esp_smartconfig_stop());
         ESP_LOGI(TAG, "Smartconfig finished");
+        ESP_ERROR_CHECK(esp_smartconfig_stop());
         vTaskDelete(NULL);
     }
 }

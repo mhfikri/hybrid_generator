@@ -5,6 +5,6 @@
 
 #include "context.h"
 
-esp_err_t wifi_init(context_t *context, const char *ssid, const char *password);
+esp_err_t wifi_init(context_t *context);
 
 #endif /* HYBRID_GENERATOR_WIFI_H */

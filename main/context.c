@@ -5,13 +5,6 @@
 
 #include "context.h"
 
-#define context_set(p, v, f) do {                    \
-      if ((p) != (v)) {                              \
-        (p) = (v);                                   \
-        bitsToSet |= (f);                            \
-      }                                              \
-    } while (0)
-
 #define context_set_flags(c, v, f) do {              \
       if (v) {                                       \
         xEventGroupSetBits((c)->event_group, (f));   \
@@ -31,13 +24,9 @@ context_t *context_create(void)
     return context;
 }
 
-esp_err_t context_set_wifi_config(context_t *context, const char *ssid, const char *password)
+esp_err_t context_set_network_provisioned(context_t *context)
 {
-    EventBits_t bitsToSet = 0U;
-    context_set(context->config.ssid, ssid, CONTEXT_EVENT_WIFI_CONFIG);
-    context_set(context->config.password, password, CONTEXT_EVENT_WIFI_CONFIG);
-
-    if (bitsToSet) xEventGroupSetBits(context->event_group, bitsToSet);
+    xEventGroupSetBits(context->event_group, CONTEXT_EVENT_NETWORK_PROVISIONED);
     return ESP_OK;
 }
 
